@@ -37,11 +37,12 @@ DropML turns raw datasets into actionable insights **without writing a single li
 
 ```bash
 # Clone the repository
+download ollama: https://ollama.com/download
 git clone https://github.com/yourusername/DropML.git
 cd DropML
 
 # Create virtual environment
-python -m venv venv
+python -m venv venv            # use python3 instead of python if you using mac
 .\venv\Scripts\activate        # Windows
 # source venv/bin/activate     # Mac/Linux
 
@@ -52,6 +53,9 @@ pip install -r requirements.txt
 ollama run llama3
 
 # Launch DropML
+# In the new Terminal: 
+source venv/bin/activate
+
 streamlit run app.py
 ```
 

@@ -5,13 +5,13 @@ import google.generativeai as genai
 from templates import get_template_list_for_prompt
 
 def configure_gemini(api_key: str):
-    """Gemini API 키를 등록합니다. (보통 Streamlit 화면 또는 env에서 받음)"""
+    """Register your Gemini API key. (Typically obtained from the Streamlit interface or the environment variables.)"""
     genai.configure(api_key=api_key)
 
 def generate_with_gemini(prompt: str, model_name: str = "gemini-1.5-pro") -> str:
     """
-    구글 Gemini API를 활용하여 코드를 생성합니다.
-    (Performance Mode - 강력한 추론 및 복잡한 최신 라이브러리 활용 시 적합)
+    Generate code using the Google Gemini API.
+    (Performance Mode - Ideal for powerful inference and leveraging complex, up-to-date libraries)
     """
     try:
         model = genai.GenerativeModel(model_name)
@@ -22,8 +22,8 @@ def generate_with_gemini(prompt: str, model_name: str = "gemini-1.5-pro") -> str
 
 def generate_with_ollama(prompt: str, model_name: str = "llama3", host: str = "http://localhost:11434") -> str:
     """
-    로컬 Ollama를 활용하여 코드를 생성합니다.
-    (Privacy Mode - 클라우드로 데이터 전송을 원치 않을 때 적합)
+    Generate code using the local Ollama.
+    (Privacy Mode - Ideal when you don't want to send data to the cloud)
     """
     url = f"{host}/api/generate"
     payload = {
@@ -38,13 +38,13 @@ def generate_with_ollama(prompt: str, model_name: str = "llama3", host: str = "h
         result = response.json()
         return result.get("response", "")
     except requests.exceptions.ConnectionError:
-        return "[Ollama Error] 로컬 서버(localhost:11434)에 연결 실패. Ollama 앱이 켜져 있는지 확인하세요."
+        return "[Ollama Error] Failed to connect to the local server (localhost:11434). Please make sure the Ollama app is running."
     except Exception as e:
         return f"[Ollama Error] {str(e)}"
 
 def build_prompt(data_catalog_json: str, user_goal: str) -> str:
     """
-    [자유 코드 생성 모드] 데이터 카탈로그와 사용자 목표를 합쳐 LLM에게 던질 프롬프트를 구성합니다.
+    [Free Code Generation Mode] Combine the data catalog with your objectives to construct a prompt for the LLM.
     """
     prompt = f"""You are an elite Data Scientist and Machine Learning Engineer.
 Below is the Data Catalog (Schema, missing values, top categories, and stats) of a target dataset.
@@ -74,8 +74,8 @@ Strict Requirements:
 
 def build_classification_prompt(data_catalog_json: str, user_goal: str) -> str:
     """
-    [하이브리드 모드] LLM에게 사용자의 요청을 분류하고 파라미터만 추출하도록 지시합니다.
-    코드를 짜는 것이 아니라, JSON만 반환하면 되므로 작은 모델(Llama 3)도 잘 수행합니다.
+    [Hybrid Mode] Instruct the LLM to classify the user's request and extract only the parameters.
+    Since it doesn't involve writing code—only returning JSON—even a small model (Llama 3) can handle this task effectively.
     """
     template_list = get_template_list_for_prompt()
     
@@ -120,17 +120,17 @@ def build_classification_prompt(data_catalog_json: str, user_goal: str) -> str:
 
 def parse_classification_response(response_text: str) -> dict:
     """
-    LLM의 분류 응답에서 JSON을 추출하고 파싱합니다.
-    실패 시 None을 반환하여 자유 코드 생성 모드로 전환합니다 (Fallback).
+    Extracts and parses JSON from the LLM's classification response.
+    Returns `None` on failure to switch to free-form code generation mode (Fallback).
     """
     import re
     
-    # JSON 블록 추출 시도 (```json ... ``` 또는 { ... })
+    
     json_match = re.search(r'```(?:json)?\s*\n?(.*?)```', response_text, re.DOTALL)
     if json_match:
         json_str = json_match.group(1).strip()
     else:
-        # 중괄호로 시작하는 JSON 직접 찾기
+        
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         if json_match:
             json_str = json_match.group(0).strip()
@@ -148,8 +148,8 @@ def parse_classification_response(response_text: str) -> dict:
 
 def build_xai_prompt(catalog_json: str, user_goal: str, executed_code: str, execution_output: str) -> str:
     """
-    XAI(설명 가능한 AI) 프롬프트를 생성합니다.
-    분석이 성공한 후, LLM에게 '왜 이 분석 방식을 선택했는지' 설명을 요청합니다.
+    Generates XAI (Explainable AI) prompts.
+    After the analysis is successful, it asks the LLM to explain why it chose this analysis method.
     """
     return f"""You are a data science advisor. A user uploaded a dataset and requested an analysis.
 The analysis has been completed successfully. Now you must EXPLAIN the analysis to the user.
@@ -168,20 +168,20 @@ The analysis has been completed successfully. Now you must EXPLAIN the analysis 
 [Execution Output]
 {execution_output}
 
-Please provide a clear, concise explanation in **Korean** following this exact structure:
+Please provide a clear, concise explanation in **English** following this exact structure:
 
-## 📋 분석 요약
-(한 문장으로 어떤 분석을 수행했는지 요약)
+## 📋 Analysis Summary
+(Summarize the analysis performed in one sentence)
 
-## 🧠 왜 이 방법을 선택했는가?
-(데이터 카탈로그의 통계치를 근거로 이 분석 방법이 적합한 이유를 2-3줄로 설명.
-예: "age 컬럼의 표준편차가 X로 분산이 크기 때문에...", "income 컬럼이 범주형이므로...")
+## 🧠 Why was this method chosen?
+(Explain in 2–3 lines why this analysis method is appropriate, based on statistics from the data catalog.
+Example: “Because the standard deviation of the ‘age’ column is X, indicating high variance...”, “Since the ‘income’ column is categorical...”)
 
-## 📊 결과 해석
-(실행 결과를 사용자가 이해할 수 있도록 핵심만 1-3줄로 해석)
+## 📊 Interpretation of Results
+(Interpret the key findings in 1–3 sentences so that the user can understand the results)
 
-## 💡 다음 단계 제안
-(이 분석 결과를 바탕으로 추가로 해볼 수 있는 분석 1-2가지를 제안)
+## 💡 Suggested Next Steps
+(Suggest 1–2 additional analyses that could be conducted based on these results)
 
 Keep it under 200 words total. Use bullet points where appropriate.
 """

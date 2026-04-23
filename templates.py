@@ -242,7 +242,7 @@ print()
 print(classification_report(y_test, y_pred, target_names=le_target.classes_))
 
 import streamlit as st
-st.metric("모델 정확도 (Accuracy)", f"{{acc*100:.1f}}%")
+st.metric("Model Accuracy", f"{{acc*100:.1f}}%")
 """
 
 
